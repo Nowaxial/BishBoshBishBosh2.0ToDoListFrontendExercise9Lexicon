@@ -1,13 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bish Bosh</title>
 </head>
+
 <body>
+    <h1>Bish Bosh</h1>
+    <p>Open the console to see the magic!</p>
     <script>
-        
+        const bishBosh = () => {
+            for (let i = 1; i <= 100; i++) {
+                let output = '';
+                if (i % 3 === 0) output += 'Bish';
+                if (i % 4 === 0) {
+                    if (output) {
+                        output += '-';
+                    }
+                    output += 'Bosh';
+                }
+                console.log(output || i);
+            }
+        };
+        bishBosh();
     </script>
 </body>
+
 </html>
