@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   //Variabler för de element som används i koden
   const shoppingForm = document.getElementById("shopping-form");
-  const shopping = document.getElementById("shopping-input");
+  const shoppingInput = document.getElementById("shopping-input");
   const shoppingList = document.getElementById("shopping-list");
   const emptyShoppingList = document.getElementById("empty-shoppinglist");
   const copyrightYear = document.getElementById("copyright-year");
@@ -9,13 +9,190 @@ document.addEventListener("DOMContentLoaded", () => {
   const clearCompletedBtn = document.getElementById("clear-completed");
 
   let shoppingItems = [];
-  let nextShoppingLisId = 1;
+  let nextShoppingListId = 1;
 
   // Aktivera tooltip för dumpster-fire ikonen
   activateToolTipDumpsterFireICon();
 
   // Hover-effekt för dumpster-fire ikonen
   hoverEffectDumspterIconFire();
+
+  // Funktion som uppdaterar copyright-year
+  updateCopyrightYear();
+
+  // Funktion som initialiserar shopping-form
+  initializeShoppingForm();
+
+
+  // Funktion som aktiverar clear-completed knappen och visar modal (dumpster-fire ikonen)
+  clearCompletedBtn.addEventListener("click", function () {
+    const deleteModal = new bootstrap.Modal(
+      document.getElementById("deleteModal")
+    );
+    deleteModal.show();
+  });
+
+  // Funktion som lägger till ny vara (text) i shoppinglistan och använder sig av addShoppingItem som skapar ett nytt element
+  function initializeShoppingForm() {
+    shoppingForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const text = shoppingInput.value.trim();
+      if (text) {
+        addShoppingItem(text);
+        shoppingInput.value = "";
+        shoppingInput.focus();
+      } else {
+        shoppingInput.focus();
+      }
+    });
+  }
+
+  //Funktion som lägger till ett nytt inköpsobjekt i shoppinglistan
+  function addShoppingItem(text, completed = false, id = null) {
+    const itemId = id || nextShoppingListId++;
+    const newItem = { id: itemId, text, completed, createdAt: new Date() };
+
+    if (!id) shoppingItems.push(newItem);
+
+    if (shoppingItems.length === 1) {
+      emptyShoppingList.style.display = "none";
+    }
+
+    const itemElement = createShoppingElement(newItem);
+
+    shoppingList.insertBefore(itemElement, emptyShoppingList);
+    return itemElement;
+  }
+
+  // Funktion som skapar ett nytt HTML-element som representerar ett inköpsobjekt
+  function createShoppingElement(item) {
+    // Skapa huvudelementet
+    const itemElement = document.createElement("div");
+    itemElement.className = `list-group-item shopping-item ${
+      item.completed ? "completed bg-success-subtle" : ""
+    }`;
+    itemElement.setAttribute("data-id", item.id);
+    itemElement.style.cursor = "pointer";
+
+    // Bygg upp HTML-strukturen
+    itemElement.innerHTML = `
+    <div class="d-flex align-items-center">
+      <i class="fas ${
+        item.completed ? "fa-check-square text-success" : "fa-square text-muted"
+      } me-2 status-icon"></i>
+      <span class="flex-grow-1 ${
+        item.completed ? "text-decoration-line-through text-muted" : ""
+      }">${item.text}</span>
+      <div class="action-buttons">
+        <button class="btn btn-sm btn-link text-info p-0 me-2 edit-btn opacity-75">
+          <i class="fas fa-pen-to-square"></i>
+        </button>
+        <button class="btn btn-sm btn-link text-danger p-0 delete-btn opacity-75">
+          <i class="fas fa-dumpster"></i>
+        </button>
+      </div>
+    </div>
+  `;
+
+    // Hämta referenser till elementen
+    const statusIcon = itemElement.querySelector(".status-icon");
+    const textSpan = itemElement.querySelector("span");
+    const editBtn = itemElement.querySelector(".edit-btn");
+    const deleteBtn = itemElement.querySelector(".delete-btn");
+
+    // Funktion för att växla status på ett inköpsobjekt
+    const toggleItemStatus = () => {
+      item.completed = !item.completed;
+
+      // Uppdatera visuella element
+      if (item.completed) {
+        // Markera som avklarad
+        statusIcon.classList.replace("fa-square", "fa-check-square");
+        statusIcon.classList.replace("text-muted", "text-success");
+        textSpan.classList.add("text-decoration-line-through", "text-muted");
+        itemElement.classList.add(
+          "bg-warning-subtle",
+          "border-start",
+          "border-warning",
+          "border-2"
+        );
+      } else {
+        // Återställ till oavklarad
+        statusIcon.classList.replace("fa-check-square", "fa-square");
+        statusIcon.classList.replace("text-success", "text-muted");
+        textSpan.classList.remove("text-decoration-line-through", "text-muted");
+        itemElement.classList.remove(
+          "bg-warning-subtle",
+          "border-start",
+          "border-warning",
+          "border-2"
+        );
+      }
+    };
+
+    //Lägger till hover-effekt på inköpsobjektet
+    function addHoverEffect() {
+      itemElement.addEventListener("mouseenter", () => {
+        itemElement.classList.add("bg-secondary-subtle");
+      });
+
+      itemElement.addEventListener("mouseleave", () => {
+        itemElement.classList.remove("bg-secondary-subtle");
+      });
+    }
+    addHoverEffect();
+
+    // Lägg till hover-effekter för knappararna redigera och Radera
+    const addHoverEffects = (btn) => {
+      btn.addEventListener("mouseenter", () =>
+        btn.classList.replace("opacity-75", "opacity-100")
+      );
+      btn.addEventListener("mouseleave", () =>
+        btn.classList.replace("opacity-100", "opacity-75")
+      );
+    };
+
+    addHoverEffects(editBtn);
+    addHoverEffects(deleteBtn);
+
+    // Klick på hela varan som togglar status till avklarad eller oavklarad
+    itemElement.addEventListener("click", (e) => {
+      if (!e.target.closest(".action-buttons")) {
+        toggleItemStatus();
+      }
+    });
+
+    // Klick på statusikonen
+    statusIcon.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleItemStatus();
+    });
+
+    // Hantera raderingsknapp
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      shoppingItems = shoppingItems.filter((i) => i.id !== item.id);
+      itemElement.remove();
+      if (shoppingItems.length === 0) {
+        emptyShoppingList.style.display = "block";
+      }
+    });
+
+    // Hantera redigeringsknapp
+    editBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Implementera redigering här senare
+      console.log("Redigera vara:", item.id);
+    });
+
+    return itemElement;
+  }
+
+  // Funktion som uppdaterar copyright-year
+  function updateCopyrightYear() {
+    const currentYear = new Date().getFullYear();
+    copyrightYear.textContent = currentYear;
+  }
 
   // Funktion som aktiverar tooltip för dumpster-fire ikonen
   function activateToolTipDumpsterFireICon() {
