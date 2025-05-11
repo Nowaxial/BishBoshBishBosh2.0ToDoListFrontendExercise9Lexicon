@@ -181,13 +181,114 @@ document.addEventListener("DOMContentLoaded", () => {
     // Hantera redigeringsknapp
     editBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      // Implementera redigering här senare
+      editShoppingItem(item.id);
       console.log("Redigera vara:", item.id);
     });
 
     return itemElement;
   }
 
+function editShoppingItem(id) {
+    const item = shoppingItems.find(i => i.id === id);
+    if (!item) return;
+
+    const itemElement = document.querySelector(`[data-id="${id}"]`); // Hitta elementet baserat på ID
+    if (itemElement.querySelector('form')) return; // Om det redan finns ett edit-formulär, avbryt (Om man råkar trycka på redigera igen)
+
+    const textElement = itemElement.querySelector('span');
+    const currentText = item.text;
+    const statusIcon = itemElement.querySelector('.status-icon');
+    
+    // Spara alla befintliga klasser och tillstånd
+    const originalClasses = {
+        textElement: {
+            lineThrough: textElement.classList.contains('text-decoration-line-through'),
+            muted: textElement.classList.contains('text-muted')
+        },
+        statusIcon: {
+            iconClass: statusIcon.className,
+            isCompleted: item.completed
+        },
+        itemElement: {
+            bgClass: itemElement.classList.contains('bg-warning-subtle'),
+            borderClass: itemElement.classList.contains('border-start')
+        }
+    };
+
+    // Skapa edit-formulär
+    const form = document.createElement('form');
+    form.className = 'd-flex align-items-center flex-grow-1';  
+    form.innerHTML = `
+        <input type="text" class="form-control form-control-sm me-2" value="${currentText}">
+        <button type="submit" class="btn btn-sm text-success mt-2">
+            <i class="fas fa-check"></i>
+        </button>
+        <button type="button" class="btn btn-sm text-danger cancel-edit mt-2">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    // Dölj originalet och visa formuläret
+    textElement.style.display = 'none';
+    textElement.parentNode.insertBefore(form, textElement.nextSibling); // Nytt element kommer efter span-elementet
+
+    const input = form.querySelector('input');
+    input.focus();
+    input.select();
+
+    // Spara ändringar
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const newText = input.value.trim();
+        if (newText) {
+            item.text = newText;
+            textElement.textContent = newText;
+            
+            // Återställ alla klasser exakt som de var innan redigering
+            if (originalClasses.textElement.lineThrough) {
+                textElement.classList.add('text-decoration-line-through');
+            } else {
+                textElement.classList.remove('text-decoration-line-through');
+            }
+            
+            if (originalClasses.textElement.muted) {
+                textElement.classList.add('text-muted');
+            } else {
+                textElement.classList.remove('text-muted');
+            }
+            
+            // Återställ ikonen
+            statusIcon.className = originalClasses.statusIcon.iconClass;
+            
+            // Återställ bakgrund och ram
+            if (originalClasses.itemElement.bgClass) {
+                itemElement.classList.add('bg-warning-subtle');
+            } else {
+                itemElement.classList.remove('bg-warning-subtle');
+            }
+            
+            if (originalClasses.itemElement.borderClass) {
+                itemElement.classList.add('border-start', 'border-warning', 'border-2');
+            } else {
+                itemElement.classList.remove('border-start', 'border-warning', 'border-2');
+            }
+        }
+
+        // Återställ visningen
+        textElement.style.display = '';
+        form.remove();
+    });
+
+    // Avbryt redigering
+    form.querySelector('.cancel-edit').addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        textElement.style.display = '';
+        form.remove();
+    });
+}
   // Funktion som uppdaterar copyright-year
   function updateCopyrightYear() {
     const currentYear = new Date().getFullYear();
