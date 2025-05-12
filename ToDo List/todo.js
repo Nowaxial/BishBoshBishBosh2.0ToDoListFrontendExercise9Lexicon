@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  //Variabler för de element som används i koden
+  // Variabler för de element som används i koden
   const shoppingForm = document.getElementById("shopping-form");
   const shoppingInput = document.getElementById("shopping-input");
   const shoppingList = document.getElementById("shopping-list");
@@ -23,13 +23,42 @@ document.addEventListener("DOMContentLoaded", () => {
   // Funktion som initialiserar shopping-form
   initializeShoppingForm();
 
+  // Funktion som uppdaterar antalet varor och avslutade varor
+  updateCounts();
 
-  // Funktion som aktiverar clear-completed knappen och visar modal (dumpster-fire ikonen)
+  // Visa modalen när "clearCompletedBtn" klickas
   clearCompletedBtn.addEventListener("click", function () {
     const deleteModal = new bootstrap.Modal(
       document.getElementById("deleteModal")
     );
     deleteModal.show();
+  });
+
+  // Ta bort alla avklarade varor
+  document.getElementById("delete-all-completed").addEventListener("click", () => {
+      // Filtera ut alla avklarade varor
+      shoppingItems = shoppingItems.filter((item) => !item.completed);
+
+      const completedSelectors = [".shopping-item.completed",".shopping-item.bg-success-subtle",".shopping-item.bg-warning-subtle",].join(", ");
+
+      shoppingList.querySelectorAll(completedSelectors).forEach((item) => {item.remove();}); 
+
+      if (shoppingItems.length === 0) {emptyShoppingList.style.display = "block";}
+
+      updateCounts();
+
+      // Stäng modal
+      const modal = bootstrap.Modal.getInstance("#deleteModal");
+      modal?.hide();
+    });
+
+  // Ta bort ALLA varor 
+  document.getElementById("delete-all-items").addEventListener("click", () => {
+    shoppingItems = []; 
+    shoppingList.querySelectorAll(".shopping-item").forEach((item) => item.remove()); 
+    emptyShoppingList.style.display = "block"; // Visa "tom lista"
+    updateCounts(); // Uppdatera räknare
+    bootstrap.Modal.getInstance(document.getElementById("deleteModal")).hide(); // Stäng modal
   });
 
   // Funktion som lägger till ny vara (text) i shoppinglistan och använder sig av addShoppingItem som skapar ett nytt element
@@ -47,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  //Funktion som lägger till ett nytt inköpsobjekt i shoppinglistan
+  // Funktion som lägger till ett nytt inköpsobjekt i shoppinglistan
   function addShoppingItem(text, completed = false, id = null) {
     const itemId = id || nextShoppingListId++;
     const newItem = { id: itemId, text, completed, createdAt: new Date() };
@@ -61,6 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const itemElement = createShoppingElement(newItem);
 
     shoppingList.insertBefore(itemElement, emptyShoppingList);
+    updateCounts(); // Uppdatera antalet varor
     return itemElement;
   }
 
@@ -128,9 +158,11 @@ document.addEventListener("DOMContentLoaded", () => {
           "border-2"
         );
       }
+      updateCounts(); // Uppdatera antalet varor och avslutade varor
+      console.log("Toggling item:", item.id, "New status:", !item.completed);
     };
 
-    //Lägger till hover-effekt på inköpsobjektet
+    // Lägg till hover-effekt på inköpsobjektet
     function addHoverEffect() {
       itemElement.addEventListener("mouseenter", () => {
         itemElement.classList.add("bg-secondary-subtle");
@@ -176,6 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (shoppingItems.length === 0) {
         emptyShoppingList.style.display = "block";
       }
+      updateCounts(); // Uppdatera antalet varor
     });
 
     // Hantera redigeringsknapp
@@ -188,36 +221,18 @@ document.addEventListener("DOMContentLoaded", () => {
     return itemElement;
   }
 
-function editShoppingItem(id) {
-    const item = shoppingItems.find(i => i.id === id);
+  function editShoppingItem(id) {
+    const item = shoppingItems.find((i) => i.id === id);
     if (!item) return;
 
-    const itemElement = document.querySelector(`[data-id="${id}"]`); // Hitta elementet baserat på ID
-    if (itemElement.querySelector('form')) return; // Om det redan finns ett edit-formulär, avbryt (Om man råkar trycka på redigera igen)
+    const itemElement = document.querySelector(`[data-id="${id}"]`);
+    if (itemElement.querySelector("form")) return;
 
-    const textElement = itemElement.querySelector('span');
+    const textElement = itemElement.querySelector("span");
     const currentText = item.text;
-    const statusIcon = itemElement.querySelector('.status-icon');
-    
-    // Spara alla befintliga klasser och tillstånd
-    const originalClasses = {
-        textElement: {
-            lineThrough: textElement.classList.contains('text-decoration-line-through'),
-            muted: textElement.classList.contains('text-muted')
-        },
-        statusIcon: {
-            iconClass: statusIcon.className,
-            isCompleted: item.completed
-        },
-        itemElement: {
-            bgClass: itemElement.classList.contains('bg-warning-subtle'),
-            borderClass: itemElement.classList.contains('border-start')
-        }
-    };
 
-    // Skapa edit-formulär
-    const form = document.createElement('form');
-    form.className = 'd-flex align-items-center flex-grow-1';  
+    const form = document.createElement("form");
+    form.className = "d-flex align-items-center flex-grow-1";
     form.innerHTML = `
         <input type="text" class="form-control form-control-sm me-2" value="${currentText}">
         <button type="submit" class="btn btn-sm text-success mt-2">
@@ -228,67 +243,32 @@ function editShoppingItem(id) {
         </button>
     `;
 
-    // Dölj originalet och visa formuläret
-    textElement.style.display = 'none';
-    textElement.parentNode.insertBefore(form, textElement.nextSibling); // Nytt element kommer efter span-elementet
+    textElement.style.display = "none";
+    textElement.parentNode.insertBefore(form, textElement.nextSibling);
 
-    const input = form.querySelector('input');
+    const input = form.querySelector("input");
     input.focus();
     input.select();
 
-    // Spara ändringar
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const newText = input.value.trim();
-        if (newText) {
-            item.text = newText;
-            textElement.textContent = newText;
-            
-            // Återställ alla klasser exakt som de var innan redigering
-            if (originalClasses.textElement.lineThrough) {
-                textElement.classList.add('text-decoration-line-through');
-            } else {
-                textElement.classList.remove('text-decoration-line-through');
-            }
-            
-            if (originalClasses.textElement.muted) {
-                textElement.classList.add('text-muted');
-            } else {
-                textElement.classList.remove('text-muted');
-            }
-            
-            // Återställ ikonen
-            statusIcon.className = originalClasses.statusIcon.iconClass;
-            
-            // Återställ bakgrund och ram
-            if (originalClasses.itemElement.bgClass) {
-                itemElement.classList.add('bg-warning-subtle');
-            } else {
-                itemElement.classList.remove('bg-warning-subtle');
-            }
-            
-            if (originalClasses.itemElement.borderClass) {
-                itemElement.classList.add('border-start', 'border-warning', 'border-2');
-            } else {
-                itemElement.classList.remove('border-start', 'border-warning', 'border-2');
-            }
-        }
-
-        // Återställ visningen
-        textElement.style.display = '';
-        form.remove();
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const newText = input.value.trim();
+      if (newText) {
+        item.text = newText;
+        textElement.textContent = newText;
+      }
+      textElement.style.display = "";
+      form.remove();
+      updateCounts(); // Uppdatera antalet varor
     });
 
-    // Avbryt redigering
-    form.querySelector('.cancel-edit').addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        textElement.style.display = '';
-        form.remove();
+    form.querySelector(".cancel-edit").addEventListener("click", function (e) {
+      e.preventDefault();
+      textElement.style.display = "";
+      form.remove();
     });
-}
+  }
+
   // Funktion som uppdaterar copyright-year
   function updateCopyrightYear() {
     const currentYear = new Date().getFullYear();
@@ -309,5 +289,28 @@ function editShoppingItem(id) {
     clearCompletedBtn.addEventListener("mouseleave", () => {
       clearCompletedBtn.classList.replace("opacity-100", "opacity-75");
     });
+  }
+  // Funktion som uppdaterar antalet varor och avslutade varor
+  function updateCounts() {
+    const totalCount = shoppingItems.length;
+    const completedCount = shoppingItems.filter(
+      (item) => item.completed
+    ).length;
+
+    document.getElementById("item-count").textContent = `${totalCount} ${
+      totalCount < 2 ? "vara" : "varor"
+    }`;
+    document.getElementById("completed-count").textContent = completedCount;
+
+    // Visa dumpster-fire ikonen om det finns avklarade varor och tillagda varor
+    clearCompletedBtn.style.visibility =
+      completedCount + totalCount > 0 ? "visible" : "hidden";
+
+    // Lägger till klassen text-success om completedCount är större än 0 på Footer-check-icon
+    if (completedCount > 0) {
+      footerCheckIcon.classList.add("text-success");
+    } else {
+      footerCheckIcon.classList.remove("text-success");
+    }
   }
 });
