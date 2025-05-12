@@ -76,6 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+
   // Funktion som lägger till ett nytt inköpsobjekt i shoppinglistan
   function addShoppingItem(text, completed = false, id = null) {
     const itemId = id || nextShoppingListId++;
@@ -130,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const editBtn = itemElement.querySelector(".edit-btn");
     const deleteBtn = itemElement.querySelector(".delete-btn");
 
-    // Funktion för att växla status på ett inköpsobjekt
+    // Funktion för att växla status på ett inköpsobjektet
     const toggleItemStatus = () => {
       item.completed = !item.completed;
 
